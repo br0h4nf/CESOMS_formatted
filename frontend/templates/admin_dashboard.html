@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard | CESOMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="ambient ambient-c"></div>
+
+    <div class="app-shell my-signups-shell">
+      <header class="topbar">
+        <div class="brand-copy">
+          <p class="eyebrow">Administrator portal</p>
+          <h1>Administrative Dashboard</h1>
+          <p class="lead">{{ admin.firstName }} {{ admin.lastName }} ({{ admin.adminId }})</p>
+        </div>
+
+        <div class="status-card">
+          <span class="status-pill">Logged in as administrator</span>
+          <p class="status-line">{{ approvals|length }} approval record{{ "" if approvals|length == 1 else "s" }}</p>
+          <a class="button-ghost inline-action" href="{{ url_for('dashboard_page') }}">Schema Demo</a>
+          <a class="button-ghost inline-action" href="{{ url_for('logout') }}">Log out</a>
+        </div>
+      </header>
+
+      <main class="content-panel">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+          <p class="flash-message flash-{{ category }}">{{ message }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="card-grid">
+          <article class="focus-card">
+            <span class="focus-label">Department</span>
+            <h4>{{ admin.department }}</h4>
+            <p class="mini-text">Administrator status: {{ admin.adminStatus }}</p>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Organizations</span>
+            <h4>{{ organizations|length }} tracked organizations</h4>
+            <p class="mini-text">Use this summary to monitor organization health across the system.</p>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Reports</span>
+            <h4>{{ reports|length }} report snapshot{{ "" if reports|length == 1 else "s" }}</h4>
+            <p class="mini-text">Reporting cards are generated from the current CESOMS data.</p>
+          </article>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Authentication</p>
+            <h3>Create users and manage your password</h3>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <article class="focus-card">
+            <span class="focus-label">Create user</span>
+            <h4>Create student or administrator logins</h4>
+            <p class="mini-text">Student users need class year and major. Admin users need a department.</p>
+            <form method="POST" action="{{ url_for('admin_create_user') }}" class="stack-form">
+              <label class="field">
+                <span>User type</span>
+                <select name="account_type" required>
+                  <option value="student">Student</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Account ID</span>
+                <input type="text" name="account_id" placeholder="STU-300 or ADM-30" required />
+              </label>
+              <label class="field">
+                <span>First name</span>
+                <input type="text" name="first_name" required />
+              </label>
+              <label class="field">
+                <span>Last name</span>
+                <input type="text" name="last_name" required />
+              </label>
+              <label class="field">
+                <span>Email</span>
+                <input type="email" name="email" required />
+              </label>
+              <label class="field">
+                <span>Password</span>
+                <input type="password" name="password" required />
+              </label>
+              <label class="field">
+                <span>Confirm password</span>
+                <input type="password" name="confirm_password" required />
+              </label>
+              <label class="field">
+                <span>Class year for students</span>
+                <input type="text" name="class_year" placeholder="2028" />
+              </label>
+              <label class="field">
+                <span>Major for students</span>
+                <input type="text" name="major" placeholder="Computer Science" />
+              </label>
+              <label class="field">
+                <span>Department for admins</span>
+                <input type="text" name="department" placeholder="Student Affairs" />
+              </label>
+              <button type="submit" class="button-solid">Create User</button>
+            </form>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Admin password</span>
+            <h4>Change your administrator password</h4>
+            <p class="mini-text">Choose a password with at least 8 characters.</p>
+            <form method="POST" action="{{ url_for('change_password') }}" class="stack-form">
+              <label class="field">
+                <span>Current password</span>
+                <input type="password" name="current_password" required />
+              </label>
+              <label class="field">
+                <span>New password</span>
+                <input type="password" name="new_password" required />
+              </label>
+              <label class="field">
+                <span>Confirm new password</span>
+                <input type="password" name="confirm_password" required />
+              </label>
+              <button type="submit" class="button-solid">Change Password</button>
+            </form>
+          </article>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Approval queue</p>
+            <h3>Event review workflow</h3>
+          </div>
+        </div>
+
+        {% if approvals %}
+        <div class="card-grid">
+          {% for approval in approvals %}
+          <article class="focus-card">
+            <span class="focus-label">{{ approval.orgName }}</span>
+            <h4>{{ approval.eventTitle }}</h4>
+            <p class="mini-text">
+              {{ approval.eventId }} | {{ approval.eventStatus }} |
+              Submitted {{ approval.submittedAt or "Not yet logged" }}
+            </p>
+            <p class="mini-text">Current decision: {{ approval.decisionStatus or "Pending" }}</p>
+            <form method="POST" action="{{ url_for('review_approval', event_id=approval.eventId) }}" class="stack-form">
+              <label class="field">
+                <span>Decision notes</span>
+                <textarea name="decision_notes" rows="3" placeholder="Explain the decision for the officer.">{{ approval.decisionNotes or "" }}</textarea>
+              </label>
+              <div class="button-row">
+                <button type="submit" name="decision" value="Approved" class="button-solid">Approve</button>
+                <button type="submit" name="decision" value="Rejected" class="button-ghost">Reject</button>
+              </div>
+            </form>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <article class="event-card">
+          <h4>No approval records found</h4>
+          <p class="event-meta">Approval workflow items will appear here as events move through review.</p>
+        </article>
+        {% endif %}
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Organizations</p>
+            <h3>Current organization roster</h3>
+          </div>
+        </div>
+
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Organization</th>
+                <th>Status</th>
+                <th>Contact</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for org in organizations %}
+              <tr>
+                <td>{{ org.orgName }}<br /><span class="mini-text">{{ org.orgId }}</span></td>
+                <td><span class="status-tag status-event">{{ org.orgStatus }}</span></td>
+                <td>{{ org.contactEmail }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">People management</p>
+            <h3>Move students, memberships, and officer roles</h3>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <article class="focus-card">
+            <span class="focus-label">Student account status</span>
+            <h4>Activate, suspend, or inactivate students</h4>
+            <form method="POST" action="{{ url_for('update_student_status') }}" class="stack-form">
+              <label class="field">
+                <span>Student</span>
+                <select name="student_id" required>
+                  <option value="">Select student</option>
+                  {% for student in students %}
+                  <option value="{{ student.studentId }}">
+                    {{ student.lastName }}, {{ student.firstName }} ({{ student.studentId }}) | {{ student.accountStatus }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="field">
+                <span>New status</span>
+                <select name="account_status" required>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </label>
+              <button type="submit" class="button-solid">Update Student Status</button>
+            </form>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Membership placement</span>
+            <h4>Add or move students into organizations</h4>
+            <form method="POST" action="{{ url_for('admin_assign_membership') }}" class="stack-form">
+              <label class="field">
+                <span>Student</span>
+                <select name="student_id" required>
+                  <option value="">Select student</option>
+                  {% for student in students %}
+                  <option value="{{ student.studentId }}">{{ student.lastName }}, {{ student.firstName }} ({{ student.studentId }})</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="field">
+                <span>Organization</span>
+                <select name="org_id" required>
+                  <option value="">Select organization</option>
+                  {% for org in organizations %}
+                  <option value="{{ org.orgId }}">{{ org.orgName }} ({{ org.orgId }})</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="field">
+                <span>Member role</span>
+                <input type="text" name="member_role" placeholder="Member, Treasurer, Volunteer..." />
+              </label>
+              <button type="submit" class="button-solid">Assign Membership</button>
+            </form>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Officer assignment</span>
+            <h4>Promote students into officer roles</h4>
+            <form method="POST" action="{{ url_for('admin_assign_officer') }}" class="stack-form">
+              <label class="field">
+                <span>Student</span>
+                <select name="student_id" required>
+                  <option value="">Select student</option>
+                  {% for student in students %}
+                  <option value="{{ student.studentId }}">{{ student.lastName }}, {{ student.firstName }} ({{ student.studentId }})</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="field">
+                <span>Organization</span>
+                <select name="org_id" required>
+                  <option value="">Select organization</option>
+                  {% for org in organizations %}
+                  <option value="{{ org.orgId }}">{{ org.orgName }} ({{ org.orgId }})</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="field">
+                <span>Role title</span>
+                <input type="text" name="role_title" placeholder="President, Vice President..." />
+              </label>
+              <label class="field">
+                <span>Start date</span>
+                <input type="date" name="start_date" />
+              </label>
+              <button type="submit" class="button-solid">Assign Officer Role</button>
+            </form>
+          </article>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Students</p>
+            <h3>Student account list</h3>
+          </div>
+        </div>
+
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Email</th>
+                <th>Class Year</th>
+                <th>Major</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in students %}
+              <tr>
+                <td>{{ student.firstName }} {{ student.lastName }}<br /><span class="mini-text">{{ student.studentId }}</span></td>
+                <td>{{ student.email }}</td>
+                <td>{{ student.classYear }}</td>
+                <td>{{ student.major }}</td>
+                <td><span class="status-tag status-registration">{{ student.accountStatus }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Membership control</p>
+            <h3>Current and past membership assignments</h3>
+          </div>
+        </div>
+
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Organization</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Left</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for membership in memberships %}
+              <tr>
+                <td>{{ membership.firstName }} {{ membership.lastName }}<br /><span class="mini-text">{{ membership.studentId }}</span></td>
+                <td>{{ membership.orgName }}<br /><span class="mini-text">{{ membership.orgId }}</span></td>
+                <td>{{ membership.memberRole }}</td>
+                <td>{{ membership.joinDate }}</td>
+                <td>{{ membership.leaveDate or "Active" }}</td>
+                <td>
+                  {% if not membership.leaveDate %}
+                  <form method="POST" action="{{ url_for('admin_end_membership') }}" class="inline-form">
+                    <input type="hidden" name="student_id" value="{{ membership.studentId }}" />
+                    <input type="hidden" name="org_id" value="{{ membership.orgId }}" />
+                    <button type="submit" class="button-ghost table-action">End Membership</button>
+                  </form>
+                  {% else %}
+                  <span class="mini-text">Ended</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Officer control</p>
+            <h3>Officer role assignments</h3>
+          </div>
+        </div>
+
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Organization</th>
+                <th>Role</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for role in officer_roles %}
+              <tr>
+                <td>{{ role.firstName }} {{ role.lastName }}<br /><span class="mini-text">{{ role.studentId }}</span></td>
+                <td>{{ role.orgName }}<br /><span class="mini-text">{{ role.orgId }}</span></td>
+                <td>{{ role.roleTitle }}</td>
+                <td>{{ role.startDate }}</td>
+                <td>{{ role.endDate or "Active" }}</td>
+                <td>
+                  {% if not role.endDate %}
+                  <form method="POST" action="{{ url_for('admin_end_officer_role') }}" class="inline-form">
+                    <input type="hidden" name="student_id" value="{{ role.studentId }}" />
+                    <input type="hidden" name="org_id" value="{{ role.orgId }}" />
+                    <input type="hidden" name="start_date" value="{{ role.startDate }}" />
+                    <button type="submit" class="button-ghost table-action">End Role</button>
+                  </form>
+                  {% else %}
+                  <span class="mini-text">Ended</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">System setup</p>
+            <h3>Manage organizations, locations, categories, and terms</h3>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <article class="focus-card">
+            <span class="focus-label">Organization management</span>
+            <h4>Create or update an organization</h4>
+            <form method="POST" action="{{ url_for('admin_save_organization') }}" class="stack-form">
+              <label class="field">
+                <span>Organization ID</span>
+                <input type="text" name="org_id" placeholder="ORG-NEW" required />
+              </label>
+              <label class="field">
+                <span>Organization name</span>
+                <input type="text" name="org_name" placeholder="Data Science Club" required />
+              </label>
+              <label class="field">
+                <span>Contact email</span>
+                <input type="email" name="contact_email" placeholder="club@school.edu" required />
+              </label>
+              <label class="field">
+                <span>Status</span>
+                <input type="text" name="org_status" value="Active" />
+              </label>
+              <label class="field">
+                <span>Description</span>
+                <textarea name="description" rows="3" placeholder="What the organization does."></textarea>
+              </label>
+              <button type="submit" class="button-solid">Save Organization</button>
+            </form>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Location management</span>
+            <h4>Create or update a location</h4>
+            <form method="POST" action="{{ url_for('admin_save_location') }}" class="stack-form">
+              <label class="field">
+                <span>Location ID</span>
+                <input type="text" name="location_id" placeholder="LOC-NEW" required />
+              </label>
+              <label class="field">
+                <span>Location name</span>
+                <input type="text" name="location_name" placeholder="Innovation Hall" required />
+              </label>
+              <label class="field">
+                <span>Building</span>
+                <input type="text" name="building" />
+              </label>
+              <label class="field">
+                <span>Room</span>
+                <input type="text" name="room" />
+              </label>
+              <label class="field">
+                <span>Address</span>
+                <input type="text" name="address" />
+              </label>
+              <label class="field">
+                <span>Virtual link</span>
+                <input type="text" name="virtual_link" />
+              </label>
+              <label class="field">
+                <span>Capacity</span>
+                <input type="number" name="capacity" min="0" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Virtual location</span>
+                <input type="checkbox" name="is_virtual" />
+              </label>
+              <button type="submit" class="button-solid">Save Location</button>
+            </form>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Category and term setup</span>
+            <h4>Maintain event categories and academic terms</h4>
+            <form method="POST" action="{{ url_for('admin_save_category') }}" class="stack-form">
+              <label class="field">
+                <span>Category ID</span>
+                <input type="text" name="category_id" placeholder="CAT-NEW" required />
+              </label>
+              <label class="field">
+                <span>Category name</span>
+                <input type="text" name="category_name" placeholder="Workshop" required />
+              </label>
+              <label class="field">
+                <span>Description</span>
+                <textarea name="description" rows="2"></textarea>
+              </label>
+              <button type="submit" class="button-solid">Save Category</button>
+            </form>
+
+            <form method="POST" action="{{ url_for('admin_save_term') }}" class="stack-form compact-form">
+              <label class="field">
+                <span>Term ID</span>
+                <input type="text" name="term_id" placeholder="TERM-2026-FA" required />
+              </label>
+              <label class="field">
+                <span>Term name</span>
+                <input type="text" name="term_name" placeholder="Fall 2026" required />
+              </label>
+              <label class="field">
+                <span>Start date</span>
+                <input type="date" name="start_date" required />
+              </label>
+              <label class="field">
+                <span>End date</span>
+                <input type="date" name="end_date" required />
+              </label>
+              <button type="submit" class="button-solid">Save Academic Term</button>
+            </form>
+          </article>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Reference tables</p>
+            <h3>Current organizations, locations, categories, and terms</h3>
+          </div>
+        </div>
+
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for org in organizations %}
+              <tr>
+                <td>Organization</td>
+                <td>{{ org.orgId }}</td>
+                <td>{{ org.orgName }}</td>
+                <td>{{ org.orgStatus }} | {{ org.contactEmail }}</td>
+              </tr>
+              {% endfor %}
+              {% for location in locations %}
+              <tr>
+                <td>Location</td>
+                <td>{{ location.locationId }}</td>
+                <td>{{ location.locationName }}</td>
+                <td>
+                  {{ location.building or "No building" }} {{ location.room or "" }} |
+                  {{ "Virtual" if location.isVirtual else "In person" }}
+                </td>
+              </tr>
+              {% endfor %}
+              {% for category in categories %}
+              <tr>
+                <td>Category</td>
+                <td>{{ category.categoryId }}</td>
+                <td>{{ category.categoryName }}</td>
+                <td>{{ category.description or "No description" }}</td>
+              </tr>
+              {% endfor %}
+              {% for term in terms %}
+              <tr>
+                <td>Academic Term</td>
+                <td>{{ term.termId }}</td>
+                <td>{{ term.termName }}</td>
+                <td>{{ term.startDate }} to {{ term.endDate }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Reports</p>
+            <h3>Generated summaries</h3>
+          </div>
+        </div>
+
+        {% if reports %}
+        <div class="card-grid">
+          {% for report in reports %}
+          <article class="report-card">
+            <span class="report-label">{{ report.reportType }}</span>
+            <h4>{{ report.summary }}</h4>
+            <div class="report-meta">{{ report.generatedAt }}</div>
+          </article>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </main>
+    </div>
+  </body>
+</html>

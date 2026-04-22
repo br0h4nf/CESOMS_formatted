@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CESOMS Frontend</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="ambient ambient-c"></div>
+
+    <div class="app-shell">
+      <header class="topbar reveal">
+        <div class="brand-copy">
+          <p class="eyebrow">Campus Event &amp; Student Organization Management System</p>
+          <h1>CESOMS Frontend</h1>
+          <p class="lead">
+            A simple, presentable interface for students, organization officers,
+            and university administrators to work with the CESOMS database.
+          </p>
+        </div>
+
+        <div class="status-card">
+          <span class="status-pill">Schema-aligned demo workspace</span>
+          <p id="termLabel" class="status-line"></p>
+          <p class="status-note">
+            Built from the project proposal, Phase 2/4 writeups, and ERD.
+          </p>
+        </div>
+      </header>
+
+      <nav class="section-nav reveal">
+        <button type="button" data-scroll-target="eventExplorer">Events</button>
+        <button type="button" data-scroll-target="operationsPanel">Operations</button>
+        <button type="button" data-scroll-target="dataPanel">Tables</button>
+        <button type="button" data-scroll-target="insightPanel">Reports</button>
+      </nav>
+
+      <main class="dashboard">
+        <section class="hero-panel reveal">
+          <div class="hero-copy">
+            <p class="eyebrow">Role workspace</p>
+            <h2 id="roleTitle"></h2>
+            <p id="roleDescription" class="hero-description"></p>
+
+            <div class="action-row">
+              <button id="primaryAction" type="button" class="button-solid"></button>
+              <button id="secondaryAction" type="button" class="button-ghost"></button>
+            </div>
+          </div>
+
+          <div id="heroStats" class="hero-stats"></div>
+        </section>
+
+        <aside class="summary-panel reveal">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">System snapshot</p>
+              <h3>Database pulse</h3>
+            </div>
+          </div>
+
+          <div id="pulseCards" class="pulse-grid"></div>
+
+          <div class="mini-panel">
+            <p class="mini-label">Entity coverage</p>
+            <div id="entityPills" class="pill-wrap"></div>
+          </div>
+        </aside>
+
+        <section class="control-panel reveal">
+          <div class="panel-heading compact-heading">
+            <div>
+              <p class="eyebrow">View controls</p>
+              <h3>Switch roles and filter events</h3>
+            </div>
+          </div>
+
+          <div id="roleButtons" class="role-buttons" aria-label="CESOMS role views"></div>
+
+          <div class="filter-row">
+            <label class="field">
+              <span>Search</span>
+              <input id="searchInput" type="search" placeholder="Search by event, org, or location" />
+            </label>
+
+            <label class="field">
+              <span>Category</span>
+              <select id="categoryFilter"></select>
+            </label>
+
+            <label class="field">
+              <span>Status</span>
+              <select id="statusFilter"></select>
+            </label>
+          </div>
+        </section>
+
+        <section id="eventExplorer" class="content-panel reveal">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Upcoming activity</p>
+              <h3>Event explorer</h3>
+            </div>
+            <p id="eventSummary" class="panel-copy"></p>
+          </div>
+
+          <div id="eventsGrid" class="event-grid"></div>
+        </section>
+
+        <section id="operationsPanel" class="content-panel split-panel reveal">
+          <div class="split-card">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Role detail</p>
+                <h3 id="focusTitle"></h3>
+              </div>
+            </div>
+            <div id="focusCards" class="focus-grid"></div>
+          </div>
+
+          <div class="split-card">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Recent changes</p>
+                <h3>Activity stream</h3>
+              </div>
+            </div>
+            <div id="activityFeed" class="activity-feed"></div>
+          </div>
+        </section>
+
+        <section id="dataPanel" class="content-panel reveal">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Database-first UI</p>
+              <h3>Table browser</h3>
+            </div>
+            <p id="tableDescription" class="panel-copy"></p>
+          </div>
+
+          <div id="tableButtons" class="table-buttons"></div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead id="tableHead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="insightPanel" class="content-panel split-panel reveal">
+          <div class="split-card">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Distribution</p>
+                <h3>Category momentum</h3>
+              </div>
+            </div>
+            <div id="categoryBars" class="bar-stack"></div>
+          </div>
+
+          <div class="split-card">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Administrative reporting</p>
+                <h3>Recent reports</h3>
+              </div>
+            </div>
+            <div id="reportCards" class="report-list"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

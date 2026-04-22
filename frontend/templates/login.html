@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Login | CESOMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body class="auth-body">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="ambient ambient-c"></div>
+
+    <main class="auth-shell">
+      <section class="auth-card">
+        <p class="eyebrow">Campus Event &amp; Student Organization Management System</p>
+        <h1>Account Login</h1>
+        <p class="auth-copy">
+          Sign in with the account type that matches your CESOMS privileges to open the correct dashboard.
+        </p>
+        <p class="auth-hint">
+          Passwords are stored securely in the database and are never shown back in the interface.
+        </p>
+
+        {% if error %}
+        <p class="auth-error">{{ error }}</p>
+        {% endif %}
+
+        <form method="POST" class="auth-form">
+          <label class="field">
+            <span>Account Type</span>
+            <select name="account_type" required>
+              <option value="student" {% if form_values.account_type == "student" %}selected{% endif %}>Student or Officer</option>
+              <option value="admin" {% if form_values.account_type == "admin" %}selected{% endif %}>Administrator</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Account ID</span>
+            <input
+              type="text"
+              name="account_id"
+              autocomplete="username"
+              placeholder="STU-101 or ADM-10"
+              value="{{ form_values.account_id }}"
+              required
+            />
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <input
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="Enter your password"
+              required
+            />
+          </label>
+
+          <button type="submit" class="button-solid">Sign In</button>
+        </form>
+
+        <p class="auth-note">
+          New here? <a href="{{ url_for('signup') }}">Create a student account</a>.
+        </p>
+
+        {% if show_admin_setup %}
+        <p class="auth-note">
+          No admin login yet? <a href="{{ url_for('setup_admin') }}">Initialize the first administrator</a>.
+        </p>
+        {% endif %}
+
+        <p class="auth-note">
+          Want the full schema demo? <a href="{{ url_for('dashboard_page') }}">Open dashboard view</a>.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

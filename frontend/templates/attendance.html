@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attendance | CESOMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="ambient ambient-c"></div>
+
+    <div class="app-shell my-signups-shell">
+      <header class="topbar">
+        <div class="brand-copy">
+          <p class="eyebrow">Attendance management</p>
+          <h1>{{ event.title }}</h1>
+          <p class="lead">{{ event.orgName }} | {{ event.startDateTime or "TBD" }} | {{ event.locationName or "TBD" }}</p>
+        </div>
+
+        <div class="status-card">
+          <span class="status-pill">Logged in as officer</span>
+          <p class="status-line">{{ registrations|length }} registration record{{ "" if registrations|length == 1 else "s" }}</p>
+          <a class="button-ghost inline-action" href="{{ url_for('officer_dashboard') }}">Back to Officer Dashboard</a>
+          <a class="button-ghost inline-action" href="{{ url_for('logout') }}">Log out</a>
+        </div>
+      </header>
+
+      <main class="content-panel">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+          <p class="flash-message flash-{{ category }}">{{ message }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="card-grid">
+          <article class="focus-card">
+            <span class="focus-label">Event status</span>
+            <h4>{{ event.eventStatus }}</h4>
+            <p class="mini-text">Approval state: {{ approval.decisionStatus if approval else "No approval record yet" }}</p>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Attendance count</span>
+            <h4>{{ registrations | selectattr("checkInTime") | list | length }} checked in</h4>
+            <p class="mini-text">Students can be updated multiple times if you need to correct a record.</p>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Attendance rule</span>
+            <h4>Registered and waitlisted students only</h4>
+            <p class="mini-text">Records are stored in the <code>ATTENDANCE</code> table with the officer who recorded them.</p>
+          </article>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Check-in roster</p>
+            <h3>Record attendance</h3>
+          </div>
+        </div>
+
+        {% if registrations %}
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Email</th>
+                <th>Registration</th>
+                <th>Checked In</th>
+                <th>Flag</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for registration in registrations %}
+              <tr>
+                <td>{{ registration.firstName }} {{ registration.lastName }}<br /><span class="mini-text">{{ registration.studentId }}</span></td>
+                <td>{{ registration.email }}</td>
+                <td><span class="status-tag status-registration">{{ registration.registrationStatus }}</span></td>
+                <td>{{ registration.checkInTime or "Not recorded" }}</td>
+                <td>{{ registration.attendanceFlag or "None" }}</td>
+                <td>
+                  {% if registration.registrationStatus in ["Registered", "Waitlisted"] %}
+                  <form method="POST" action="{{ url_for('record_attendance') }}" class="attendance-form">
+                    <input type="hidden" name="event_id" value="{{ event.eventId }}" />
+                    <input type="hidden" name="student_id" value="{{ registration.studentId }}" />
+                    <select name="attendance_flag">
+                      <option value="Present" {% if registration.attendanceFlag == "Present" %}selected{% endif %}>Present</option>
+                      <option value="Late" {% if registration.attendanceFlag == "Late" %}selected{% endif %}>Late</option>
+                      <option value="Excused" {% if registration.attendanceFlag == "Excused" %}selected{% endif %}>Excused</option>
+                    </select>
+                    <button type="submit" class="button-solid table-action">Save</button>
+                  </form>
+                  {% else %}
+                  <span class="mini-text">Not eligible</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <article class="event-card">
+          <h4>No registrations found</h4>
+          <p class="event-meta">Attendance becomes useful once students register for the event.</p>
+        </article>
+        {% endif %}
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Initialize Admin | CESOMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body class="auth-body">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="ambient ambient-c"></div>
+
+    <main class="auth-shell">
+      <section class="auth-card">
+        <p class="eyebrow">Administrator setup</p>
+        <h1>Initialize First Admin</h1>
+        <p class="auth-copy">
+          Create the first administrator login by linking it to an existing <code>ADMINISTRATOR</code> record.
+        </p>
+        <p class="auth-hint">Use this only once if the system has no admin login yet.</p>
+
+        {% if error %}
+        <p class="auth-error">{{ error }}</p>
+        {% endif %}
+
+        {% if success %}
+        <p class="auth-success">{{ success }}</p>
+        {% endif %}
+
+        <form method="POST" class="auth-form">
+          <label class="field">
+            <span>Admin ID</span>
+            <input type="text" name="admin_id" value="{{ form_values.admin_id }}" placeholder="ADM-10" required />
+          </label>
+
+          <label class="field">
+            <span>Email</span>
+            <input type="email" name="email" value="{{ form_values.email }}" placeholder="admin@school.edu" required />
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <input type="password" name="password" placeholder="At least 8 characters" required />
+          </label>
+
+          <label class="field">
+            <span>Confirm Password</span>
+            <input type="password" name="confirm_password" placeholder="Re-enter password" required />
+          </label>
+
+          <button type="submit" class="button-solid">Create Admin Login</button>
+        </form>
+
+        <p class="auth-note">
+          Already set up? <a href="{{ url_for('login') }}">Back to login</a>.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

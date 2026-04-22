@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ "Edit Event" if form_mode == "edit" else "Create Event" }} | CESOMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="ambient ambient-c"></div>
+
+    <div class="app-shell create-event-shell">
+      <header class="topbar">
+        <div class="brand-copy">
+          <p class="eyebrow">Event management</p>
+          <h1>{{ "Edit Event" if form_mode == "edit" else "Create a New Event" }}</h1>
+          <p class="lead">
+            {{ "Update the event record tied to your CESOMS schema." if form_mode == "edit" else "Build a draft or submitted event record tied to your CESOMS schema." }}
+          </p>
+        </div>
+
+        <div class="status-card">
+          <span class="status-pill">Logged in as {{ current_role }}</span>
+          <p class="status-line">{{ student.firstName }} {{ student.lastName }}</p>
+          {% if current_role == "officer" %}
+          <a class="button-ghost inline-action" href="{{ url_for('officer_dashboard') }}">Officer Dashboard</a>
+          {% else %}
+          <a class="button-ghost inline-action" href="{{ url_for('my_signups') }}">Student View</a>
+          {% endif %}
+          <a class="button-ghost inline-action" href="{{ url_for('logout') }}">Log out</a>
+        </div>
+      </header>
+
+      <main class="content-panel">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+          <p class="flash-message flash-{{ category }}">{{ message }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Event form</p>
+            <h3>Required schema fields</h3>
+          </div>
+        </div>
+
+        <form method="POST" class="create-event-form">
+          <div class="create-event-grid">
+            <label class="field">
+              <span>Event ID</span>
+              <input type="text" name="event_id" placeholder="EVT-3001" value="{{ form_values.event_id }}" {% if form_mode == "edit" %}readonly{% else %}required{% endif %} />
+            </label>
+
+            <label class="field">
+              <span>Title</span>
+              <input type="text" name="title" placeholder="Career Networking Night" value="{{ form_values.title }}" required />
+            </label>
+
+            <label class="field field-full">
+              <span>Description</span>
+              <textarea name="description" rows="4" placeholder="Describe the event purpose and agenda.">{{ form_values.description }}</textarea>
+            </label>
+
+            <label class="field">
+              <span>Organization</span>
+              <select name="org_id" required>
+                <option value="">Select organization</option>
+                {% for org in options.organizations %}
+                <option value="{{ org.orgId }}" {% if form_values.org_id == (org.orgId|string) %}selected{% endif %}>
+                  {{ org.orgName }} ({{ org.orgId }})
+                </option>
+                {% endfor %}
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Location</span>
+              <select name="location_id" required>
+                <option value="">Select location</option>
+                {% for location in options.locations %}
+                <option value="{{ location.locationId }}" {% if form_values.location_id == (location.locationId|string) %}selected{% endif %}>
+                  {{ location.locationName }} ({{ location.locationId }})
+                </option>
+                {% endfor %}
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Category</span>
+              <select name="category_id" required>
+                <option value="">Select category</option>
+                {% for category in options.categories %}
+                <option value="{{ category.categoryId }}" {% if form_values.category_id == (category.categoryId|string) %}selected{% endif %}>
+                  {{ category.categoryName }} ({{ category.categoryId }})
+                </option>
+                {% endfor %}
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Academic Term</span>
+              <select name="term_id" required>
+                <option value="">Select term</option>
+                {% for term in options.terms %}
+                <option value="{{ term.termId }}" {% if form_values.term_id == (term.termId|string) %}selected{% endif %}>
+                  {{ term.termName }} ({{ term.termId }})
+                </option>
+                {% endfor %}
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Capacity</span>
+              <input type="number" name="capacity" min="0" value="{{ form_values.capacity }}" required />
+            </label>
+
+            <label class="field">
+              <span>Status</span>
+              <select name="event_status" required>
+                <option value="Draft" {% if form_values.event_status == "Draft" %}selected{% endif %}>Draft</option>
+                <option value="Submitted" {% if form_values.event_status == "Submitted" %}selected{% endif %}>Submitted</option>
+                {% if form_mode == "edit" %}
+                <option value="Rejected" {% if form_values.event_status == "Rejected" %}selected{% endif %}>Rejected</option>
+                {% endif %}
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Start Date/Time</span>
+              <input type="datetime-local" name="start_datetime" value="{{ form_values.start_datetime }}" required />
+            </label>
+
+            <label class="field">
+              <span>End Date/Time</span>
+              <input type="datetime-local" name="end_datetime" value="{{ form_values.end_datetime }}" required />
+            </label>
+          </div>
+
+          <div class="create-event-actions">
+            <button type="submit" class="button-solid">{{ "Save Changes" if form_mode == "edit" else "Create Event" }}</button>
+            <a class="button-ghost" href="{{ url_for('officer_dashboard' if current_role == 'officer' else 'my_signups') }}">Cancel</a>
+          </div>
+        </form>
+      </main>
+    </div>
+  </body>
+</html>

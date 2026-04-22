@@ -1,0 +1,9 @@
+# Local database config template
+# Copy this structure into .DB_info.txt or DB_info.txt (which are gitignored).
+# Optional alternate location: set DB_CONFIG_FILE to a custom path.
+
+host=YOUR_DB_HOST
+user=YOUR_DB_USER
+password=YOUR_DB_PASSWORD
+database=YOUR_DB_NAME
+# port=3306

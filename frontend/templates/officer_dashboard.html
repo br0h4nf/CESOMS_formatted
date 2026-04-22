@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Officer Dashboard | CESOMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="ambient ambient-c"></div>
+
+    <div class="app-shell my-signups-shell">
+      <header class="topbar">
+        <div class="brand-copy">
+          <p class="eyebrow">Officer portal</p>
+          <h1>Organization Dashboard</h1>
+          <p class="lead">{{ student.firstName }} {{ student.lastName }} ({{ student.studentId }})</p>
+        </div>
+
+        <div class="status-card">
+          <span class="status-pill">Logged in as officer</span>
+          <p class="status-line">{{ officer_roles|length }} active officer role{{ "" if officer_roles|length == 1 else "s" }}</p>
+          <a class="button-solid inline-action" href="{{ url_for('create_event') }}">Create Event</a>
+          <a class="button-ghost inline-action" href="{{ url_for('my_signups') }}">Student View</a>
+          <a class="button-ghost inline-action" href="{{ url_for('logout') }}">Log out</a>
+        </div>
+      </header>
+
+      <main class="content-panel">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+          <p class="flash-message flash-{{ category }}">{{ message }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="card-grid">
+          <article class="focus-card">
+            <span class="focus-label">Officer assignments</span>
+            <h4>Current roles</h4>
+            <ul class="focus-list">
+              {% for role in officer_roles %}
+              <li>{{ role.orgName }} | {{ role.roleTitle }} | Started {{ role.startDate }}</li>
+              {% endfor %}
+            </ul>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Managed events</span>
+            <h4>{{ managed_events|length }} event record{{ "" if managed_events|length == 1 else "s" }}</h4>
+            <p class="mini-text">Submitted, draft, scheduled, and approved events tied to your organizations.</p>
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Approval pipeline</span>
+            <h4>{{ approvals|length }} approval record{{ "" if approvals|length == 1 else "s" }}</h4>
+            <p class="mini-text">Use this view to monitor what still needs review from administrators.</p>
+          </article>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Submission workflow</p>
+            <h3>Drafts ready for admin review</h3>
+          </div>
+        </div>
+
+        {% if draft_events %}
+        <div class="card-grid">
+          {% for draft in draft_events %}
+          <article class="focus-card">
+            <span class="focus-label">{{ draft.orgName }}</span>
+            <h4>{{ draft.title }}</h4>
+            <p class="mini-text">{{ draft.eventId }} | {{ draft.eventStatus }} | {{ draft.startDateTime or "TBD" }}</p>
+            <form method="POST" action="{{ url_for('submit_event', event_id=draft.eventId) }}" class="stack-form">
+              <label class="field">
+                <span>Submission note</span>
+                <textarea name="decision_notes" rows="3" placeholder="Optional note for the admin review team."></textarea>
+              </label>
+              <button type="submit" class="button-solid">Submit for Approval</button>
+            </form>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <article class="event-card">
+          <h4>No drafts waiting</h4>
+          <p class="event-meta">All current officer-managed events have already moved beyond the draft stage.</p>
+        </article>
+        {% endif %}
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Event oversight</p>
+            <h3>Managed events</h3>
+          </div>
+        </div>
+
+        {% if managed_events %}
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Organization</th>
+                <th>Status</th>
+                <th>Starts</th>
+                <th>Ends</th>
+                <th>Registered</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for event in managed_events %}
+              <tr>
+                <td>{{ event.title }}<br /><span class="mini-text">{{ event.eventId }}</span></td>
+                <td>{{ event.orgName }}</td>
+                <td><span class="status-tag status-event">{{ event.eventStatus }}</span></td>
+                <td>{{ event.startDateTime or "TBD" }}</td>
+                <td>{{ event.endDateTime or "TBD" }}</td>
+                <td>{{ event.registeredCount }}</td>
+                <td>
+                  <a class="button-ghost inline-action table-link-button" href="{{ url_for('edit_event', event_id=event.eventId) }}">
+                    Edit
+                  </a>
+                  <a class="button-ghost inline-action table-link-button" href="{{ url_for('event_attendance', event_id=event.eventId) }}">
+                    Attendance
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <article class="event-card">
+          <h4>No managed events yet</h4>
+          <p class="event-meta">Create your first event to start building your organization schedule.</p>
+        </article>
+        {% endif %}
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Membership</p>
+            <h3>Organization roster</h3>
+          </div>
+        </div>
+
+        {% if roster %}
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Organization</th>
+                <th>Student</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Left</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for member in roster %}
+              <tr>
+                <td>{{ member.orgName }}</td>
+                <td>{{ member.firstName }} {{ member.lastName }}<br /><span class="mini-text">{{ member.studentId }}</span></td>
+                <td>{{ member.memberRole }}</td>
+                <td>{{ member.joinDate }}</td>
+                <td>{{ member.leaveDate or "Active" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <article class="event-card">
+          <h4>No roster data found</h4>
+          <p class="event-meta">No membership records are linked to your active officer organizations.</p>
+        </article>
+        {% endif %}
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Approvals</p>
+            <h3>Submission history</h3>
+          </div>
+        </div>
+
+        {% if approvals %}
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Organization</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th>Reviewed</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for approval in approvals %}
+              <tr>
+                <td>{{ approval.eventTitle }}<br /><span class="mini-text">{{ approval.eventId }}</span></td>
+                <td>{{ approval.orgName }}</td>
+                <td>{{ approval.submittedAt or "Not submitted" }}</td>
+                <td><span class="status-tag status-registration">{{ approval.decisionStatus }}</span></td>
+                <td>
+                  {% if approval.reviewedAt %}
+                  {{ approval.reviewedAt }}<br />
+                  <span class="mini-text">{{ approval.reviewerFirstName or "" }} {{ approval.reviewerLastName or "" }}</span>
+                  {% else %}
+                  Pending
+                  {% endif %}
+                </td>
+                <td>{{ approval.decisionNotes or "No notes" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <article class="event-card">
+          <h4>No approvals yet</h4>
+          <p class="event-meta">Submitted events will appear here once approval workflow records exist.</p>
+        </article>
+        {% endif %}
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,5 @@
+host="100.110.160.143"
+user="CESOMS"
+password="bradroot#"
+database="campus_event_db"
+port="3306"

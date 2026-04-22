@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Sign-Ups | CESOMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="ambient ambient-c"></div>
+
+    <div class="app-shell my-signups-shell">
+      <header class="topbar">
+        <div class="brand-copy">
+          <p class="eyebrow">Student portal</p>
+          <h1>My Event Sign-Ups</h1>
+          <p class="lead">
+            {{ student.firstName }} {{ student.lastName }} ({{ student.studentId }})
+          </p>
+        </div>
+
+        <div class="status-card">
+          <span class="status-pill">Logged in as {{ current_role }}</span>
+          <p class="status-line">{{ signups|length }} registration record{{ "" if signups|length == 1 else "s" }}</p>
+          {% if current_role == "officer" %}
+          <a class="button-ghost inline-action" href="{{ url_for('officer_dashboard') }}">Officer Dashboard</a>
+          {% endif %}
+          {% if can_create_event %}
+          <a class="button-ghost inline-action" href="{{ url_for('create_event') }}">Create Event</a>
+          {% endif %}
+          <a class="button-ghost inline-action" href="{{ url_for('logout') }}">Log out</a>
+        </div>
+      </header>
+
+      <main class="content-panel">
+        <p class="greeting-line">Hi {{ student.firstName }} {{ student.lastName }}, welcome back.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+          <p class="flash-message flash-{{ category }}">{{ message }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Personal records</p>
+            <h3>Registrations linked to your account</h3>
+          </div>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Profile</p>
+            <h3>Update your student information</h3>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <article class="focus-card profile-card-wide">
+            <span class="focus-label">Student profile</span>
+            <h4>Keep your account details current</h4>
+            <form method="POST" action="{{ url_for('update_profile') }}" class="stack-form">
+              <div class="auth-grid">
+                <label class="field">
+                  <span>First Name</span>
+                  <input type="text" name="first_name" value="{{ student.firstName }}" required />
+                </label>
+                <label class="field">
+                  <span>Last Name</span>
+                  <input type="text" name="last_name" value="{{ student.lastName }}" required />
+                </label>
+                <label class="field field-full">
+                  <span>Email</span>
+                  <input type="email" name="email" value="{{ student.email }}" required />
+                </label>
+                <label class="field">
+                  <span>Class Year</span>
+                  <input type="text" name="class_year" value="{{ student.classYear }}" required />
+                </label>
+                <label class="field">
+                  <span>Major</span>
+                  <input type="text" name="major" value="{{ student.major }}" required />
+                </label>
+              </div>
+              <div class="button-row">
+                <button type="submit" class="button-solid">Save Profile</button>
+                <span class="mini-text">Student ID: {{ student.studentId }} | Status: {{ student.accountStatus }}</span>
+              </div>
+            </form>
+          </article>
+        </div>
+
+        <div class="card-grid">
+          <article class="focus-card">
+            <span class="focus-label">Password security</span>
+            <h4>Change your password</h4>
+            <p class="mini-text">Passwords must be at least 8 characters and are stored hashed in the database.</p>
+            <form method="POST" action="{{ url_for('change_password') }}" class="stack-form">
+              <label class="field">
+                <span>Current password</span>
+                <input type="password" name="current_password" required />
+              </label>
+              <label class="field">
+                <span>New password</span>
+                <input type="password" name="new_password" required />
+              </label>
+              <label class="field">
+                <span>Confirm new password</span>
+                <input type="password" name="confirm_password" required />
+              </label>
+              <button type="submit" class="button-solid">Change Password</button>
+            </form>
+          </article>
+        </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Organizations</p>
+            <h3>Memberships and join options</h3>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <article class="focus-card">
+            <span class="focus-label">Active and past memberships</span>
+            <h4>{{ memberships|length }} membership record{{ "" if memberships|length == 1 else "s" }}</h4>
+            {% if memberships %}
+            <ul class="focus-list">
+              {% for membership in memberships %}
+              <li>
+                {{ membership.orgName }} | {{ membership.memberRole }} |
+                {{ "Active" if not membership.leaveDate else "Ended " ~ membership.leaveDate }}
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="mini-text">You have not joined any organizations yet.</p>
+            {% endif %}
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Join an organization</span>
+            <h4>Available active organizations</h4>
+            {% if joinable_organizations %}
+            <form method="POST" action="{{ url_for('join_organization') }}" class="stack-form">
+              <label class="field">
+                <span>Choose organization</span>
+                <select name="org_id" required>
+                  <option value="">Select organization</option>
+                  {% for org in joinable_organizations %}
+                  <option value="{{ org.orgId }}">{{ org.orgName }} ({{ org.orgId }})</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <button type="submit" class="button-solid">Join Organization</button>
+            </form>
+            {% else %}
+            <p class="mini-text">You are already active in every currently available organization.</p>
+            {% endif %}
+          </article>
+
+          <article class="focus-card">
+            <span class="focus-label">Leave an organization</span>
+            <h4>End an active membership</h4>
+            {% set active_memberships = memberships | selectattr("leaveDate", "equalto", None) | list %}
+            {% if active_memberships %}
+            <form method="POST" action="{{ url_for('leave_organization') }}" class="stack-form">
+              <label class="field">
+                <span>Choose organization</span>
+                <select name="org_id" required>
+                  <option value="">Select organization</option>
+                  {% for membership in active_memberships %}
+                  <option value="{{ membership.orgId }}">{{ membership.orgName }} ({{ membership.orgId }})</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <button type="submit" class="button-ghost">Leave Organization</button>
+            </form>
+            {% else %}
+            <p class="mini-text">No active memberships are available to end.</p>
+            {% endif %}
+          </article>
+        </div>
+
+        {% if signups %}
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Organization</th>
+                <th>Start</th>
+                <th>Location</th>
+                <th>Registration Status</th>
+                <th>Event Status</th>
+                <th>Registered At</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for signup in signups %}
+              <tr>
+                <td>
+                  <strong>{{ signup.eventTitle }}</strong><br />
+                  <span class="mini-text">{{ signup.eventId }}</span>
+                </td>
+                <td>{{ signup.organizationName or "Unassigned" }}</td>
+                <td>{{ signup.startDateTime or "TBD" }}</td>
+                <td>
+                  {{ signup.locationName or "TBD" }}
+                  {% if signup.isVirtual %}
+                  <span class="meta-chip alt">Virtual</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="status-tag status-registration">{{ signup.registrationStatus }}</span>
+                </td>
+                <td>
+                  <span class="status-tag status-event">{{ signup.eventStatus }}</span>
+                </td>
+                <td>{{ signup.registeredAt }}</td>
+                <td>
+                  {% if signup.registrationStatus in ["Registered", "Waitlisted"] %}
+                  <form method="POST" action="{{ url_for('unregister_event') }}" class="inline-form">
+                    <input type="hidden" name="event_id" value="{{ signup.eventId }}" />
+                    <button type="submit" class="button-ghost table-action">Unregister</button>
+                  </form>
+                  {% else %}
+                  <span class="mini-text">No action</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <article class="event-card">
+          <h4>No sign-ups yet</h4>
+          <p class="event-meta">
+            You are logged in, but no records were found in <code>REGISTRATION</code> for this student account.
+          </p>
+        </article>
+        {% endif %}
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Discover events</p>
+            <h3>Available events to register</h3>
+          </div>
+        </div>
+
+        {% if available_events %}
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Organization</th>
+                <th>Start</th>
+                <th>Location</th>
+                <th>Seats</th>
+                <th>My Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for event in available_events %}
+              <tr>
+                <td>
+                  <strong>{{ event.eventTitle }}</strong><br />
+                  <span class="mini-text">{{ event.eventId }}</span>
+                </td>
+                <td>{{ event.organizationName or "Unassigned" }}</td>
+                <td>{{ event.startDateTime or "TBD" }}</td>
+                <td>
+                  {{ event.locationName or "TBD" }}
+                  {% if event.isVirtual %}
+                  <span class="meta-chip alt">Virtual</span>
+                  {% endif %}
+                </td>
+                <td>{{ event.registeredCount }}/{{ event.capacity }}</td>
+                <td>
+                  {% if event.myRegistrationStatus %}
+                  <span class="status-tag status-registration">{{ event.myRegistrationStatus }}</span>
+                  {% else %}
+                  <span class="mini-text">Not registered</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if event.myRegistrationStatus in ["Registered", "Waitlisted"] %}
+                  <span class="mini-text">Already active</span>
+                  {% else %}
+                  <form method="POST" action="{{ url_for('register_event') }}" class="inline-form">
+                    <input type="hidden" name="event_id" value="{{ event.eventId }}" />
+                    <button type="submit" class="button-solid table-action">
+                      {{ "Register Again" if event.myRegistrationStatus == "Cancelled" else "Register" }}
+                    </button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <article class="event-card">
+          <h4>No available events</h4>
+          <p class="event-meta">
+            There are no approved or scheduled events open for registration right now.
+          </p>
+        </article>
+        {% endif %}
+      </main>
+    </div>
+  </body>
+</html>
