@@ -49,13 +49,6 @@
 
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">Personal records</p>
-            <h3>Registrations linked to your account</h3>
-          </div>
-        </div>
-
-        <div class="panel-heading signup-secondary-heading">
-          <div>
             <p class="eyebrow">Profile</p>
             <h3>Update your student information</h3>
           </div>
@@ -118,6 +111,74 @@
             </form>
           </article>
         </div>
+
+        <div class="panel-heading signup-secondary-heading">
+          <div>
+            <p class="eyebrow">Personal records</p>
+            <h3>Registrations linked to your account</h3>
+          </div>
+        </div>
+
+        {% if signups %}
+        <div class="table-wrapper signup-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Organization</th>
+                <th>Start</th>
+                <th>Location</th>
+                <th>Registration Status</th>
+                <th>Event Status</th>
+                <th>Registered At</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for signup in signups %}
+              <tr>
+                <td>
+                  <strong>{{ signup.eventTitle }}</strong><br />
+                  <span class="mini-text">{{ signup.eventId }}</span>
+                </td>
+                <td>{{ signup.organizationName or "Unassigned" }}</td>
+                <td>{{ signup.startDateTime or "TBD" }}</td>
+                <td>
+                  {{ signup.locationName or "TBD" }}
+                  {% if signup.isVirtual %}
+                  <span class="meta-chip alt">Virtual</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="status-tag status-registration">{{ signup.registrationStatus }}</span>
+                </td>
+                <td>
+                  <span class="status-tag status-event">{{ signup.eventStatus }}</span>
+                </td>
+                <td>{{ signup.registeredAt }}</td>
+                <td>
+                  {% if signup.registrationStatus in ["Registered", "Waitlisted"] %}
+                  <form method="POST" action="{{ url_for('unregister_event') }}" class="inline-form">
+                    <input type="hidden" name="event_id" value="{{ signup.eventId }}" />
+                    <button type="submit" class="button-ghost table-action">Unregister</button>
+                  </form>
+                  {% else %}
+                  <span class="mini-text">No action</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <article class="event-card">
+          <h4>No sign-ups yet</h4>
+          <p class="event-meta">
+            You are logged in, but no records were found in <code>REGISTRATION</code> for this student account.
+          </p>
+        </article>
+        {% endif %}
 
         <div class="panel-heading signup-secondary-heading">
           <div>
@@ -187,67 +248,6 @@
             {% endif %}
           </article>
         </div>
-
-        {% if signups %}
-        <div class="table-wrapper signup-table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Event</th>
-                <th>Organization</th>
-                <th>Start</th>
-                <th>Location</th>
-                <th>Registration Status</th>
-                <th>Event Status</th>
-                <th>Registered At</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for signup in signups %}
-              <tr>
-                <td>
-                  <strong>{{ signup.eventTitle }}</strong><br />
-                  <span class="mini-text">{{ signup.eventId }}</span>
-                </td>
-                <td>{{ signup.organizationName or "Unassigned" }}</td>
-                <td>{{ signup.startDateTime or "TBD" }}</td>
-                <td>
-                  {{ signup.locationName or "TBD" }}
-                  {% if signup.isVirtual %}
-                  <span class="meta-chip alt">Virtual</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <span class="status-tag status-registration">{{ signup.registrationStatus }}</span>
-                </td>
-                <td>
-                  <span class="status-tag status-event">{{ signup.eventStatus }}</span>
-                </td>
-                <td>{{ signup.registeredAt }}</td>
-                <td>
-                  {% if signup.registrationStatus in ["Registered", "Waitlisted"] %}
-                  <form method="POST" action="{{ url_for('unregister_event') }}" class="inline-form">
-                    <input type="hidden" name="event_id" value="{{ signup.eventId }}" />
-                    <button type="submit" class="button-ghost table-action">Unregister</button>
-                  </form>
-                  {% else %}
-                  <span class="mini-text">No action</span>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% else %}
-        <article class="event-card">
-          <h4>No sign-ups yet</h4>
-          <p class="event-meta">
-            You are logged in, but no records were found in <code>REGISTRATION</code> for this student account.
-          </p>
-        </article>
-        {% endif %}
 
         <div class="panel-heading signup-secondary-heading">
           <div>
