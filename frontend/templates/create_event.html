@@ -55,7 +55,7 @@
           <div class="create-event-grid">
             <label class="field">
               <span>Event ID</span>
-              <input type="text" name="event_id" placeholder="EVT-3001" value="{{ form_values.event_id }}" {% if form_mode == "edit" %}readonly{% else %}required{% endif %} />
+              <input type="number" name="event_id" min="1" placeholder="3001" value="{{ form_values.event_id }}" {% if form_mode == "edit" %}readonly{% else %}required{% endif %} />
             </label>
 
             <label class="field">

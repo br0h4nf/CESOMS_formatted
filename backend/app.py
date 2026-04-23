@@ -1702,15 +1702,16 @@ def create_event():
         cursor = conn.cursor()
 
         student = fetch_student_by_id(cursor, student_id)
-        role = current_user_role()
         officer_roles = fetch_active_officer_roles(cursor, student_id)
         if not student or student["accountStatus"] != "Active":
             session.clear()
             flash("Only active student accounts can access event creation.", "error")
             return redirect(url_for("login"))
-        if role != "officer":
+        if not officer_roles:
             flash("Only organization officers can create events.", "error")
             return redirect(url_for("portal_home"))
+        session["user_role"] = "officer"
+        role = "officer"
 
         options = fetch_event_creation_options(
             cursor,
@@ -1749,6 +1750,30 @@ def create_event():
             ]
             if any(not value for value in required_values):
                 flash("Fill in all required fields.", "error")
+                return render_template(
+                    "create_event.html",
+                    student=student,
+                    current_role=role,
+                    options=options,
+                    form_values=form_values,
+                    form_mode="create",
+                )
+
+            try:
+                event_id = int(form_values["event_id"])
+            except ValueError:
+                flash("Event ID must be a whole number.", "error")
+                return render_template(
+                    "create_event.html",
+                    student=student,
+                    current_role=role,
+                    options=options,
+                    form_values=form_values,
+                    form_mode="create",
+                )
+
+            if event_id <= 0:
+                flash("Event ID must be greater than zero.", "error")
                 return render_template(
                     "create_event.html",
                     student=student,
@@ -1867,7 +1892,7 @@ def create_event():
                 FROM EVENT
                 WHERE EventID = %s
                 LIMIT 1
-            """, (form_values["event_id"],))
+            """, (event_id,))
             if existing:
                 flash("That Event ID already exists. Use a unique ID.", "error")
                 return render_template(
@@ -1895,7 +1920,7 @@ def create_event():
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
-                form_values["event_id"],
+                event_id,
                 form_values["org_id"],
                 form_values["location_id"],
                 form_values["category_id"],
@@ -1908,7 +1933,7 @@ def create_event():
                 form_values["event_status"],
             ))
             conn.commit()
-            flash(f"Event {form_values['event_id']} created successfully.", "success")
+            flash(f"Event {event_id} created successfully.", "success")
             return redirect(url_for("create_event"))
 
         return render_template(
