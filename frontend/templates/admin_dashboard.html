@@ -119,6 +119,42 @@
           </article>
 
           <article class="focus-card">
+            <span class="focus-label">Delete user</span>
+            <h4>Remove student or administrator accounts</h4>
+            <p class="mini-text">This removes the login and the linked profile record. Deleted students are also removed from memberships, officer roles, registrations, and attendance.</p>
+            <form method="POST" action="{{ url_for('admin_delete_user') }}" class="stack-form">
+              <label class="field">
+                <span>Student account</span>
+                <select name="account_id">
+                  <option value="">Select student</option>
+                  {% for student in students %}
+                  <option value="{{ student.studentId }}">
+                    {{ student.lastName }}, {{ student.firstName }} ({{ student.studentId }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </label>
+              <input type="hidden" name="account_type" value="student" />
+              <button type="submit" class="button-ghost">Delete Student</button>
+            </form>
+            <form method="POST" action="{{ url_for('admin_delete_user') }}" class="stack-form">
+              <label class="field">
+                <span>Administrator account</span>
+                <select name="account_id">
+                  <option value="">Select administrator</option>
+                  {% for managed_admin in admins %}
+                  <option value="{{ managed_admin.adminId }}">
+                    {{ managed_admin.lastName }}, {{ managed_admin.firstName }} ({{ managed_admin.adminId }}) | {{ managed_admin.adminStatus }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </label>
+              <input type="hidden" name="account_type" value="admin" />
+              <button type="submit" class="button-ghost">Delete Administrator</button>
+            </form>
+          </article>
+
+          <article class="focus-card">
             <span class="focus-label">Admin password</span>
             <h4>Change your administrator password</h4>
             <p class="mini-text">Choose a password with at least 8 characters.</p>

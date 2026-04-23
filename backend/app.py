@@ -219,6 +219,17 @@ def create_auth_user(cursor, account_type, account_ref_id, password):
     ))
 
 
+def delete_auth_user(cursor, account_type, account_ref_id):
+    cursor.execute("""
+        DELETE FROM APP_USER
+        WHERE AccountType = %s
+          AND (
+              AccountRefID = %s
+              OR CAST(AccountRefID AS UNSIGNED) = %s
+          )
+    """, (account_type, str(account_ref_id), int(account_ref_id)))
+
+
 def update_auth_password(cursor, account_type, account_ref_id, password):
     cursor.execute("""
         UPDATE APP_USER
@@ -1666,6 +1677,105 @@ def admin_create_user():
             flash("That account already exists.", "error")
         else:
             flash("Could not create the user right now.", "error")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/delete-user", methods=["POST"])
+def admin_delete_user():
+    admin_id, redirect_response = admin_required()
+    if redirect_response:
+        return redirect_response
+
+    account_type = request.form.get("account_type", "").strip()
+    account_id = request.form.get("account_id", "").strip()
+
+    if account_type not in {"student", "admin"}:
+        flash("Choose a valid user type to delete.", "error")
+        return redirect(url_for("admin_dashboard"))
+    if not account_id:
+        flash("Choose a valid user account to delete.", "error")
+        return redirect(url_for("admin_dashboard"))
+    if account_type == "admin" and str(admin_id) == account_id:
+        flash("You cannot delete your own administrator account while logged in.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        if account_type == "student":
+            student = fetch_student_by_id(cursor, account_id)
+            if not student:
+                flash("That student account was not found.", "info")
+                return redirect(url_for("admin_dashboard"))
+
+            cursor.execute("""
+                UPDATE APPROVAL
+                SET SubmittedByOfficerStudentID = NULL,
+                    SubmittedByOfficerOrgID = NULL,
+                    SubmittedByOfficerStartDate = NULL
+                WHERE SubmittedByOfficerStudentID = %s
+            """, (account_id,))
+            cursor.execute("""
+                UPDATE ATTENDANCE
+                SET RecordedByOfficerStudentID = NULL,
+                    RecordedByOfficerOrgID = NULL,
+                    RecordedByOfficerStartDate = NULL
+                WHERE RecordedByOfficerStudentID = %s
+            """, (account_id,))
+            cursor.execute("""
+                DELETE FROM ATTENDANCE
+                WHERE StudentID = %s
+            """, (account_id,))
+            cursor.execute("""
+                DELETE FROM REGISTRATION
+                WHERE StudentID = %s
+            """, (account_id,))
+            cursor.execute("""
+                DELETE FROM ORGANIZATION_OFFICER
+                WHERE StudentID = %s
+            """, (account_id,))
+            cursor.execute("""
+                DELETE FROM MEMBERSHIP
+                WHERE StudentID = %s
+            """, (account_id,))
+            delete_auth_user(cursor, "student", account_id)
+            cursor.execute("""
+                DELETE FROM STUDENT
+                WHERE StudentID = %s
+            """, (account_id,))
+            conn.commit()
+            flash(f"Student account {account_id} deleted successfully.", "success")
+        else:
+            admin = fetch_admin_by_id(cursor, account_id)
+            if not admin:
+                flash("That administrator account was not found.", "info")
+                return redirect(url_for("admin_dashboard"))
+
+            cursor.execute("""
+                UPDATE APPROVAL
+                SET ReviewedByAdminID = NULL
+                WHERE ReviewedByAdminID = %s
+            """, (account_id,))
+            delete_auth_user(cursor, "admin", account_id)
+            cursor.execute("""
+                DELETE FROM ADMINISTRATOR
+                WHERE AdminID = %s
+            """, (account_id,))
+            conn.commit()
+            flash(f"Administrator account {account_id} deleted successfully.", "success")
+    except mysql.connector.Error:
+        if conn:
+            conn.rollback()
+        flash("Could not delete the user right now.", "error")
     finally:
         if cursor:
             cursor.close()
