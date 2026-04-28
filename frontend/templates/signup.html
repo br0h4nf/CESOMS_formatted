@@ -18,7 +18,7 @@
         <p class="auth-copy">
           This registration form creates a new <code>STUDENT</code> record with an active account status.
         </p>
-        <p class="auth-hint">Use a password with at least 8 characters.</p>
+        <p class="auth-hint">Use a numeric student ID and a password with at least 8 characters.</p>
 
         {% if error %}
         <p class="auth-error">{{ error }}</p>
@@ -32,7 +32,7 @@
           <div class="auth-grid">
             <label class="field">
               <span>Student ID</span>
-              <input type="text" name="student_id" placeholder="STU-205" value="{{ form_values.student_id }}" required />
+              <input type="text" name="student_id" inputmode="numeric" pattern="[0-9]+" placeholder="205" value="{{ form_values.student_id }}" required />
             </label>
 
             <label class="field">

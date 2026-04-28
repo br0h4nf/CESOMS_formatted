@@ -91,6 +91,18 @@ def get_connection():
     return mysql.connector.connect(**DB_CONFIG)
 
 
+def normalize_student_id(raw_student_id):
+    candidate = (raw_student_id or "").strip()
+    if not candidate or not candidate.isdigit():
+        return None
+
+    normalized = str(int(candidate))
+    if normalized == "0":
+        return None
+
+    return normalized
+
+
 def ensure_auth_schema():
     conn = None
     cursor = None
@@ -1098,8 +1110,19 @@ def login():
                         build_session_for_admin(admin)
                         return redirect(url_for("portal_home"))
                 else:
-                    student = fetch_student_by_id(cursor, form_values["account_id"])
-                    auth_user = fetch_auth_user(cursor, "student", form_values["account_id"])
+                    normalized_student_id = normalize_student_id(form_values["account_id"])
+                    if not normalized_student_id:
+                        error = "Student IDs must use numbers only."
+                        return render_template(
+                            "login.html",
+                            error=error,
+                            form_values=form_values,
+                            show_admin_setup=show_admin_setup,
+                        )
+
+                    form_values["account_id"] = normalized_student_id
+                    student = fetch_student_by_id(cursor, normalized_student_id)
+                    auth_user = fetch_auth_user(cursor, "student", normalized_student_id)
 
                     if not student or not auth_user or not check_password_hash(auth_user["passwordHash"], password):
                         error = "Invalid student ID or password."
@@ -1162,14 +1185,18 @@ def signup():
         }
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
+        normalized_student_id = normalize_student_id(form_values["student_id"])
 
         if any(not value for value in form_values.values()):
             error = "Fill in all account fields."
+        elif not normalized_student_id:
+            error = "Student IDs must use numbers only."
         elif len(password) < 8:
             error = "Password must be at least 8 characters."
         elif password != confirm_password:
             error = "Password confirmation does not match."
         else:
+            form_values["student_id"] = normalized_student_id
             conn = None
             cursor = None
             try:
@@ -1586,6 +1613,14 @@ def admin_create_user():
     try:
         conn = get_connection()
         cursor = conn.cursor()
+
+        if account_type == "student":
+            normalized_student_id = normalize_student_id(account_id)
+            if not normalized_student_id:
+                flash("Student account IDs must use numbers only.", "error")
+                return redirect(url_for("admin_dashboard"))
+            account_id = normalized_student_id
+
         if fetch_auth_user(cursor, account_type, account_id):
             flash("A login already exists for that account.", "error")
             return redirect(url_for("admin_dashboard"))
