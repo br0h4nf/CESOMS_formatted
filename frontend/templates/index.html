@@ -34,6 +34,7 @@
 
       <nav class="section-nav reveal">
         <button type="button" data-scroll-target="eventExplorer">Events</button>
+        <button type="button" data-scroll-target="visualPanel">Visuals</button>
         <button type="button" data-scroll-target="operationsPanel">Operations</button>
         <button type="button" data-scroll-target="dataPanel">Tables</button>
         <button type="button" data-scroll-target="insightPanel">Reports</button>
@@ -109,6 +110,60 @@
           </div>
 
           <div id="eventsGrid" class="event-grid"></div>
+        </section>
+
+        <section id="visualPanel" class="content-panel reveal">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Data visualization</p>
+              <h3>Campus activity charts</h3>
+            </div>
+            <p class="panel-copy">Live summaries generated from events, registrations, approvals, and memberships.</p>
+          </div>
+
+          <div class="visual-grid">
+            <article class="visual-card">
+              <div class="visual-heading">
+                <h4>Event status mix</h4>
+                <span id="statusTotal" class="visual-kicker"></span>
+              </div>
+              <div id="statusDonut" class="donut-chart" aria-label="Event status chart"></div>
+              <div id="statusLegend" class="chart-legend"></div>
+            </article>
+
+            <article class="visual-card">
+              <div class="visual-heading">
+                <h4>Enrollment per org</h4>
+                <span id="enrollmentTotal" class="visual-kicker"></span>
+              </div>
+              <div id="enrollmentPie" class="donut-chart" aria-label="Organization enrollment chart"></div>
+              <div id="enrollmentLegend" class="chart-legend"></div>
+            </article>
+
+            <article class="visual-card">
+              <div class="visual-heading">
+                <h4>Registrations by month</h4>
+                <span id="registrationTotal" class="visual-kicker"></span>
+              </div>
+              <div id="registrationBars" class="column-chart"></div>
+            </article>
+
+            <article class="visual-card">
+              <div class="visual-heading">
+                <h4>Organization activity</h4>
+                <span class="visual-kicker">events and active members</span>
+              </div>
+              <div id="organizationBars" class="ranked-bars"></div>
+            </article>
+
+            <article class="visual-card">
+              <div class="visual-heading">
+                <h4>Capacity utilization</h4>
+                <span class="visual-kicker">registered seats vs capacity</span>
+              </div>
+              <div id="capacityBars" class="ranked-bars"></div>
+            </article>
+          </div>
         </section>
 
         <section id="operationsPanel" class="content-panel split-panel reveal">

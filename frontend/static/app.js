@@ -88,6 +88,18 @@ const tableBody = document.getElementById("tableBody");
 const categoryBars = document.getElementById("categoryBars");
 const reportCards = document.getElementById("reportCards");
 const termLabel = document.getElementById("termLabel");
+const statusDonut = document.getElementById("statusDonut");
+const statusLegend = document.getElementById("statusLegend");
+const statusTotal = document.getElementById("statusTotal");
+const enrollmentPie = document.getElementById("enrollmentPie");
+const enrollmentLegend = document.getElementById("enrollmentLegend");
+const enrollmentTotal = document.getElementById("enrollmentTotal");
+const registrationBars = document.getElementById("registrationBars");
+const registrationTotal = document.getElementById("registrationTotal");
+const organizationBars = document.getElementById("organizationBars");
+const capacityBars = document.getElementById("capacityBars");
+
+const chartColors = ["#1f6f6d", "#e9b44c", "#e76f51", "#6a8d73", "#7b6d8d", "#d18c57", "#154e54"];
 
 init();
 
@@ -180,12 +192,196 @@ function render() {
   renderPulse();
   renderEntityPills();
   renderEvents();
+  renderVisualizations();
   renderFocusCards();
   renderActivityFeed();
   renderTableBrowser();
   renderCategoryBars();
   renderReports();
   renderTermLabel();
+}
+
+function renderVisualizations() {
+  renderStatusDonut();
+  renderEnrollmentPie();
+  renderRegistrationTimeline();
+  renderOrganizationActivity();
+  renderCapacityUtilization();
+}
+
+function renderStatusDonut() {
+  const statusCounts = countBy(data.events, (event) => event.eventStatus || "No status");
+  const entries = Object.entries(statusCounts).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((sum, [, value]) => sum + value, 0);
+
+  statusTotal.textContent = `${total} event${total === 1 ? "" : "s"}`;
+
+  if (!total) {
+    statusDonut.style.background = "rgba(24, 50, 55, 0.08)";
+    statusDonut.innerHTML = `<span>0</span>`;
+    statusLegend.innerHTML = emptyInlineState("No events found.");
+    return;
+  }
+
+  let cursor = 0;
+  const segments = entries.map(([label, value], index) => {
+    const start = cursor;
+    const size = (value / total) * 100;
+    cursor += size;
+    return `${chartColors[index % chartColors.length]} ${start}% ${cursor}%`;
+  });
+
+  statusDonut.style.background = `conic-gradient(${segments.join(", ")})`;
+  statusDonut.innerHTML = `<span>${total}</span>`;
+  statusLegend.innerHTML = entries
+    .map(
+      ([label, value], index) => `
+        <span class="legend-item">
+          <i style="background:${chartColors[index % chartColors.length]}"></i>
+          ${escapeHtml(label)}: ${value}
+        </span>
+      `
+    )
+    .join("");
+}
+
+function renderEnrollmentPie() {
+  const entries = data.organizations
+    .map((org) => {
+      const activeMembers = data.memberships.filter(
+        (membership) => idsMatch(membership.orgId, org.orgId) && !membership.leaveDate
+      ).length;
+      return [org.orgName, activeMembers];
+    })
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((sum, [, value]) => sum + value, 0);
+
+  enrollmentTotal.textContent = `${total} active enrollment${total === 1 ? "" : "s"}`;
+
+  if (!total) {
+    enrollmentPie.style.background = "rgba(24, 50, 55, 0.08)";
+    enrollmentPie.innerHTML = `<span>0</span>`;
+    enrollmentLegend.innerHTML = emptyInlineState("No active organization enrollment found.");
+    return;
+  }
+
+  let cursor = 0;
+  const segments = entries.map(([, value], index) => {
+    const start = cursor;
+    const size = (value / total) * 100;
+    cursor += size;
+    return `${chartColors[index % chartColors.length]} ${start}% ${cursor}%`;
+  });
+
+  enrollmentPie.style.background = `conic-gradient(${segments.join(", ")})`;
+  enrollmentPie.innerHTML = `<span>${total}</span>`;
+  enrollmentLegend.innerHTML = entries
+    .map(
+      ([label, value], index) => `
+        <span class="legend-item">
+          <i style="background:${chartColors[index % chartColors.length]}"></i>
+          ${escapeHtml(label)}: ${value}
+        </span>
+      `
+    )
+    .join("");
+}
+
+function renderRegistrationTimeline() {
+  const buckets = countBy(data.registrations, (registration) => formatMonthKey(registration.registeredAt));
+  const entries = Object.entries(buckets)
+    .filter(([label]) => label !== "Not set")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .slice(-6);
+  const total = data.registrations.length;
+  const max = Math.max(1, ...entries.map(([, value]) => value));
+
+  registrationTotal.textContent = `${total} registration${total === 1 ? "" : "s"}`;
+
+  if (!entries.length) {
+    registrationBars.innerHTML = emptyInlineState("No registration dates found.");
+    return;
+  }
+
+  registrationBars.innerHTML = entries
+    .map(([label, value]) => {
+      const height = Math.max(12, Math.round((value / max) * 100));
+      return `
+        <div class="column-item">
+          <div class="column-track">
+            <div class="column-fill" style="height:${height}%"></div>
+          </div>
+          <strong>${value}</strong>
+          <span>${escapeHtml(formatMonthLabel(label))}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderOrganizationActivity() {
+  const rows = data.organizations
+    .map((org) => {
+      const events = data.events.filter((event) => idsMatch(event.orgId, org.orgId)).length;
+      const members = data.memberships.filter((membership) => idsMatch(membership.orgId, org.orgId) && !membership.leaveDate).length;
+      return {
+        label: org.orgName,
+        value: events + members,
+        detail: `${events} event${events === 1 ? "" : "s"} | ${members} active member${members === 1 ? "" : "s"}`,
+      };
+    })
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 6);
+
+  organizationBars.innerHTML = renderRankedBars(rows, "No organization activity found.");
+}
+
+function renderCapacityUtilization() {
+  const rows = data.events
+    .map((event) => {
+      const capacity = Number(event.capacity);
+      if (!Number.isFinite(capacity) || capacity <= 0) {
+        return null;
+      }
+
+      const registered = countRegistrationsForEvent(event.eventId);
+      return {
+        label: event.title || `Event ${event.eventId}`,
+        value: Math.min(100, Math.round((registered / capacity) * 100)),
+        detail: `${registered}/${capacity} seats`,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 6);
+
+  capacityBars.innerHTML = renderRankedBars(rows, "No event capacity data found.", "%");
+}
+
+function renderRankedBars(rows, emptyMessage, suffix = "") {
+  if (!rows.length) {
+    return emptyInlineState(emptyMessage);
+  }
+
+  const max = Math.max(1, ...rows.map((row) => row.value));
+  return rows
+    .map((row) => {
+      const width = Math.max(4, Math.round((row.value / max) * 100));
+      return `
+        <article class="ranked-row">
+          <div class="ranked-head">
+            <span>${escapeHtml(row.label)}</span>
+            <strong>${escapeHtml(row.value)}${suffix}</strong>
+          </div>
+          <div class="ranked-track">
+            <div class="ranked-fill" style="width:${width}%"></div>
+          </div>
+          <p>${escapeHtml(row.detail)}</p>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderRoleButtons() {
@@ -871,6 +1067,32 @@ function countAttendanceForEvent(eventId) {
   return data.attendance.filter((entry) => idsMatch(entry.eventId, eventId)).length;
 }
 
+function countBy(items, getKey) {
+  return items.reduce((counts, item) => {
+    const key = getKey(item);
+    counts[key] = (counts[key] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+function formatMonthKey(value) {
+  const dateValue = parseDateValue(value);
+  if (Number.isNaN(dateValue.getTime())) {
+    return "Not set";
+  }
+
+  return `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthLabel(monthKey) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const dateValue = new Date(year, month - 1, 1);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    year: "2-digit",
+  }).format(dateValue);
+}
+
 function formatDate(value, withTime = false) {
   const dateValue = parseDateValue(value);
   if (Number.isNaN(dateValue.getTime())) {
@@ -924,6 +1146,10 @@ function emptyCard(title, copy) {
       <p class="event-meta">${escapeHtml(copy)}</p>
     </article>
   `;
+}
+
+function emptyInlineState(copy) {
+  return `<p class="mini-text">${escapeHtml(copy)}</p>`;
 }
 
 function escapeHtml(value) {
