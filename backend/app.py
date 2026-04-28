@@ -3434,155 +3434,165 @@ def admin_save_term():
 
 @app.route("/api/dashboard")
 def api_dashboard():
-    conn = get_connection()
-    cursor = conn.cursor()
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
 
-    data = {
-        "students": fetch_all_dict(cursor, """
+        data = {
+            "currentUser": {
+                "role": current_user_role() or "",
+                "studentId": current_student_id() or "",
+                "adminId": current_admin_id() or "",
+            },
+            "students": fetch_all_dict(cursor, """
+                SELECT
+                    StudentID AS studentId,
+                    FirstName AS firstName,
+                    LastName AS lastName,
+                    Email AS email,
+                    ClassYear AS classYear,
+                    Major AS major,
+                    AccountStatus AS accountStatus
+                FROM STUDENT
+                ORDER BY StudentID
+            """),
+            "administrators": fetch_all_dict(cursor, """
+                SELECT
+                    AdminID AS adminId,
+                    FirstName AS firstName,
+                    LastName AS lastName,
+                    Email AS email,
+                    Department AS department,
+                    AdminStatus AS adminStatus
+                FROM ADMINISTRATOR
+                ORDER BY AdminID
+            """),
+            "organizations": fetch_all_dict(cursor, """
+                SELECT
+                    OrgID AS orgId,
+                    OrgName AS orgName,
+                    Description AS description,
+                    ContactEmail AS contactEmail,
+                    OrgStatus AS orgStatus
+                FROM ORGANIZATION
+                ORDER BY OrgID
+            """),
+            "organizationOfficers": fetch_all_dict(cursor, """
+                SELECT
+                    StudentID AS studentId,
+                    OrgID AS orgId,
+                    StartDate AS startDate,
+                    RoleTitle AS roleTitle,
+                    EndDate AS endDate
+                FROM ORGANIZATION_OFFICER
+                ORDER BY OrgID, StudentID, StartDate
+            """),
+            "memberships": fetch_all_dict(cursor, """
+                SELECT
+                    StudentID AS studentId,
+                    OrgID AS orgId,
+                    JoinDate AS joinDate,
+                    LeaveDate AS leaveDate,
+                    MemberRole AS memberRole
+                FROM MEMBERSHIP
+                ORDER BY OrgID, StudentID
+            """),
+            "locations": fetch_all_dict(cursor, """
+                SELECT
+                    LocationID AS locationId,
+                    LocationName AS locationName,
+                    Building AS building,
+                    Room AS room,
+                    Address AS address,
+                    IsVirtual AS isVirtual,
+                    VirtualLink AS virtualLink,
+                    Capacity AS capacity
+                FROM LOCATION
+                ORDER BY LocationID
+            """),
+            "categories": fetch_all_dict(cursor, """
+                SELECT
+                    CategoryID AS categoryId,
+                    CategoryName AS categoryName,
+                    Description AS description
+                FROM EVENT_CATEGORY
+                ORDER BY CategoryID
+            """),
+            "events": fetch_all_dict(cursor, """
+                SELECT
+                    EventID AS eventId,
+                    OrgID AS orgId,
+                    LocationID AS locationId,
+                    CategoryID AS categoryId,
+                    TermID AS termId,
+                    Title AS title,
+                    Description AS description,
+                    Capacity AS capacity,
+                    StartDateTime AS startDateTime,
+                    EndDateTime AS endDateTime,
+                    EventStatus AS eventStatus
+                FROM EVENT
+                ORDER BY StartDateTime, EventID
+            """),
+            "registrations": fetch_all_dict(cursor, """
+                SELECT
+                    StudentID AS studentId,
+                    EventID AS eventId,
+                    RegisteredAt AS registeredAt,
+                    RegistrationStatus AS registrationStatus
+                FROM REGISTRATION
+                ORDER BY RegisteredAt, StudentID, EventID
+            """),
+            "attendance": fetch_all_dict(cursor, """
+                SELECT
+                    StudentID AS studentId,
+                    EventID AS eventId,
+                    CheckInTime AS checkInTime,
+                    AttendanceFlag AS attendanceFlag,
+                    RecordedByOfficerStudentID AS recordedByOfficerStudentId,
+                    RecordedByOfficerOrgID AS recordedByOfficerOrgId,
+                    RecordedByOfficerStartDate AS recordedByOfficerStartDate
+                FROM ATTENDANCE
+                ORDER BY CheckInTime, StudentID, EventID
+            """),
+            "approvals": fetch_all_dict(cursor, """
+                SELECT
+                    EventID AS eventId,
+                    SubmittedByOfficerStudentID AS submittedByOfficerStudentId,
+                    SubmittedByOfficerOrgID AS submittedByOfficerOrgId,
+                    SubmittedByOfficerStartDate AS submittedByOfficerStartDate,
+                    ReviewedByAdminID AS reviewedByAdminId,
+                    SubmittedAt AS submittedAt,
+                    ReviewedAt AS reviewedAt,
+                    DecisionStatus AS decisionStatus,
+                    DecisionNotes AS decisionNotes
+                FROM APPROVAL
+                ORDER BY SubmittedAt DESC, EventID
+            """),
+        }
+
+        academic_terms = fetch_all_dict(cursor, """
             SELECT
-                StudentID AS studentId,
-                FirstName AS firstName,
-                LastName AS lastName,
-                Email AS email,
-                ClassYear AS classYear,
-                Major AS major,
-                AccountStatus AS accountStatus
-            FROM STUDENT
-            ORDER BY StudentID
-        """),
-        "administrators": fetch_all_dict(cursor, """
-            SELECT
-                AdminID AS adminId,
-                FirstName AS firstName,
-                LastName AS lastName,
-                Email AS email,
-                Department AS department,
-                AdminStatus AS adminStatus
-            FROM ADMINISTRATOR
-            ORDER BY AdminID
-        """),
-        "organizations": fetch_all_dict(cursor, """
-            SELECT
-                OrgID AS orgId,
-                OrgName AS orgName,
-                Description AS description,
-                ContactEmail AS contactEmail,
-                OrgStatus AS orgStatus
-            FROM ORGANIZATION
-            ORDER BY OrgID
-        """),
-        "organizationOfficers": fetch_all_dict(cursor, """
-            SELECT
-                StudentID AS studentId,
-                OrgID AS orgId,
-                StartDate AS startDate,
-                RoleTitle AS roleTitle,
-                EndDate AS endDate
-            FROM ORGANIZATION_OFFICER
-            ORDER BY OrgID, StudentID, StartDate
-        """),
-        "memberships": fetch_all_dict(cursor, """
-            SELECT
-                StudentID AS studentId,
-                OrgID AS orgId,
-                JoinDate AS joinDate,
-                LeaveDate AS leaveDate,
-                MemberRole AS memberRole
-            FROM MEMBERSHIP
-            ORDER BY OrgID, StudentID
-        """),
-        "locations": fetch_all_dict(cursor, """
-            SELECT
-                LocationID AS locationId,
-                LocationName AS locationName,
-                Building AS building,
-                Room AS room,
-                Address AS address,
-                IsVirtual AS isVirtual,
-                VirtualLink AS virtualLink,
-                Capacity AS capacity
-            FROM LOCATION
-            ORDER BY LocationID
-        """),
-        "categories": fetch_all_dict(cursor, """
-            SELECT
-                CategoryID AS categoryId,
-                CategoryName AS categoryName,
-                Description AS description
-            FROM EVENT_CATEGORY
-            ORDER BY CategoryID
-        """),
-        "events": fetch_all_dict(cursor, """
-            SELECT
-                EventID AS eventId,
-                OrgID AS orgId,
-                LocationID AS locationId,
-                CategoryID AS categoryId,
                 TermID AS termId,
-                Title AS title,
-                Description AS description,
-                Capacity AS capacity,
-                StartDateTime AS startDateTime,
-                EndDateTime AS endDateTime,
-                EventStatus AS eventStatus
-            FROM EVENT
-            ORDER BY StartDateTime, EventID
-        """),
-        "registrations": fetch_all_dict(cursor, """
-            SELECT
-                StudentID AS studentId,
-                EventID AS eventId,
-                RegisteredAt AS registeredAt,
-                RegistrationStatus AS registrationStatus
-            FROM REGISTRATION
-            ORDER BY RegisteredAt, StudentID, EventID
-        """),
-        "attendance": fetch_all_dict(cursor, """
-            SELECT
-                StudentID AS studentId,
-                EventID AS eventId,
-                CheckInTime AS checkInTime,
-                AttendanceFlag AS attendanceFlag,
-                RecordedByOfficerStudentID AS recordedByOfficerStudentId,
-                RecordedByOfficerOrgID AS recordedByOfficerOrgId,
-                RecordedByOfficerStartDate AS recordedByOfficerStartDate
-            FROM ATTENDANCE
-            ORDER BY CheckInTime, StudentID, EventID
-        """),
-        "approvals": fetch_all_dict(cursor, """
-            SELECT
-                EventID AS eventId,
-                SubmittedByOfficerStudentID AS submittedByOfficerStudentId,
-                SubmittedByOfficerOrgID AS submittedByOfficerOrgId,
-                SubmittedByOfficerStartDate AS submittedByOfficerStartDate,
-                ReviewedByAdminID AS reviewedByAdminId,
-                SubmittedAt AS submittedAt,
-                ReviewedAt AS reviewedAt,
-                DecisionStatus AS decisionStatus,
-                DecisionNotes AS decisionNotes
-            FROM APPROVAL
-            ORDER BY SubmittedAt DESC, EventID
-        """),
-    }
+                TermName AS termName,
+                StartDate AS startDate,
+                EndDate AS endDate
+            FROM ACADEMIC_TERM
+            ORDER BY StartDate DESC
+            LIMIT 1
+        """)
 
-    academic_terms = fetch_all_dict(cursor, """
-        SELECT
-            TermID AS termId,
-            TermName AS termName,
-            StartDate AS startDate,
-            EndDate AS endDate
-        FROM ACADEMIC_TERM
-        ORDER BY StartDate DESC
-        LIMIT 1
-    """)
+        data["academicTerm"] = academic_terms[0] if academic_terms else {}
+        data["reports"] = build_reports(cursor)
 
-    data["academicTerm"] = academic_terms[0] if academic_terms else {}
-    data["reports"] = build_reports(cursor)
-
-    cursor.close()
-    conn.close()
-
-    return jsonify(data)
+        return jsonify(data)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 if __name__ == "__main__":
